@@ -1,17 +1,16 @@
 package com.lin.core;
 
-import java.io.IOException;
 import java.util.List;
 
 public class SynchronizationRunner{
 	
+	private Scanner scanner = new Scanner();
 	
-	
-	public List<?> run(Class<?> clazz) throws IOException{
+	public List<?> run(Class<?> clazz) throws ClassNotFoundException{
 		
-		Scanner scanner = new Scanner();
-		List
-		
+		if(scanner.classIsExist(clazz)){
+			String selectSQL = scanner.getSelectSQL(clazz);
+		}
 		
 		return null;
 	}

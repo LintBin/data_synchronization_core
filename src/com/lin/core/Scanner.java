@@ -2,11 +2,13 @@ package com.lin.core;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import com.lin.core.annotation.Table;
@@ -17,14 +19,40 @@ public class Scanner {
 	 
 	 //项目根目录的绝对路径
 	private static String ROOT_DIR_FULL_PATH ;
+	private Map<Class<?>,String>  classMap = new HashMap<Class<?>, String>();
 	
-	public Scanner() throws IOException{
+	
+	public Scanner(){
 		//读取properties文件
-		ROOT_DIR_FULL_PATH = "/" + this.getPath();
+		try {
+			ROOT_DIR_FULL_PATH = "/" + ConfigHelper.getPath();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		Properties prop = new Properties();
-		prop.load(new FileInputStream(ROOT_DIR_FULL_PATH + "/config.properties"));  
-		 
+		
+		try {
+			prop.load(new FileInputStream(ROOT_DIR_FULL_PATH + "/config.properties"));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}  
 		PATH = prop.getProperty("base-package");  
+		
+		
+		List<Class<?>> classList = null;
+		try {
+			classList = this.getAnnotationClasses();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		for(Class<?> clazz : classList){
+			String selectSQL = this.getSelectSQL(clazz);
+			classMap.put(clazz, selectSQL);
+		}
+		
+		
 	}
 	
 	public List<Class<?>> getAnnotationClasses() throws ClassNotFoundException {
@@ -104,7 +132,6 @@ public class Scanner {
 		
 		Field[] Fields  = clazz.getDeclaredFields();
 		
-		System.out.println(t.tableName());
 		String tableName = t.tableName();
 		String selectSQL = "select ";
 		
@@ -129,15 +156,14 @@ public class Scanner {
 	}
 
 
-	public String getPath() throws IOException{
 
-		URL pathURL = this.getClass().getClassLoader().getResource("");
-		String pathStr = pathURL.toString();
-		if(pathStr.startsWith("file:/")){
-			pathStr = pathStr.replace("file:/", "");
-		}
-
-		return pathStr;
-	
+	public Map<Class<?>, String> getClassMap() {
+		return classMap;
 	}
+	
+	public boolean classIsExist(Class<?> clazz){
+		return classMap.containsKey(clazz);
+	}
+	
+	
 }
