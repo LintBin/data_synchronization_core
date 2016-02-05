@@ -1,8 +1,6 @@
 package com.lin.core;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -13,13 +11,15 @@ import java.util.Properties;
 
 import com.lin.core.annotation.Table;
 import com.lin.core.annotation.TableField;
+import com.lin.core.util.ConfigHelper;
+import com.lin.core.util.PropertiesHelper;
 
 public class Scanner {
     private static String PATH = null;
 	 
 	 //项目根目录的绝对路径
 	private static String ROOT_DIR_FULL_PATH ;
-	private Map<Class<?>,String>  classMap = new HashMap<Class<?>, String>();
+	private Map<Class<?>,Field[]>  classMap = new HashMap<Class<?>, Field[]>();
 	
 	
 	public Scanner(){
@@ -29,15 +29,8 @@ public class Scanner {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		Properties prop = new Properties();
+		Properties prop = PropertiesHelper.getProperties();
 		
-		try {
-			prop.load(new FileInputStream(ROOT_DIR_FULL_PATH + "/config.properties"));
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}  
 		PATH = prop.getProperty("base-package");  
 		
 		
@@ -48,8 +41,10 @@ public class Scanner {
 			e.printStackTrace();
 		}
 		for(Class<?> clazz : classList){
-			String selectSQL = this.getSelectSQL(clazz);
-			classMap.put(clazz, selectSQL);
+			
+			Field[] Fields  = clazz.getDeclaredFields();
+			
+			classMap.put(clazz, Fields);
 		}
 		
 		
@@ -79,33 +74,6 @@ public class Scanner {
 			Class<?> clazz = Class.forName(PATH + "." + fileName);
 			classList.add(clazz);
 	
-	/*Table t = clazz.getAnnotation(Table.class);
-	
-	Field[] Fields  = clazz.getDeclaredFields();
-	
-	System.out.println(t.tableName());
-	String tableName = t.tableName();
-	String selectSQL = "select ";
-	
-	for(Field field : Fields){
-		
-		TableField tf = field.getAnnotation(TableField.class);
-		System.out.println(tf.target());
-		System.out.println(tf.source());
-		
-		String target = tf.target();
-		
-		selectSQL = selectSQL + target + " ,";
-		
-	}
-	
-	selectSQL = selectSQL.substring(0,selectSQL.length()-1);	
-	
-	selectSQL = selectSQL + " from " + tableName;
-	
-	System.out.println(selectSQL);*/
-		
-		
 		}
 		return classList;
 	}
@@ -124,8 +92,11 @@ public class Scanner {
 		return selectSQLList;
 	}
     
-	
-	
+	/**
+	 * @deprecated 要解耦
+	 * @param clazz
+	 * @return
+	 */
 	public String getSelectSQL(Class<?> clazz){
 		
 		Table t = clazz.getAnnotation(Table.class);
@@ -138,9 +109,6 @@ public class Scanner {
 		for(Field field : Fields){
 			
 			TableField tf = field.getAnnotation(TableField.class);
-			System.out.println(tf.target());
-			System.out.println(tf.source());
-			
 			String target = tf.target();
 			
 			selectSQL = selectSQL + target + " ,";
@@ -154,10 +122,39 @@ public class Scanner {
 		
 		return selectSQL;
 	}
+	
+	/**
+	 * 获取到查询的SQL,由Fields的顺序来决定查询的数据
+	 * @param Fields
+	 * @param clazz
+	 * @return
+	 */
+	public String getSelectSQL(Field[] Fields ,Class<?> clazz){
+		
+		Table t = clazz.getAnnotation(Table.class);
+		
+		String selectSQL = "select ";
+		String tableName = t.tableName();
+		for(Field field : Fields){
+			
+			TableField tf = field.getAnnotation(TableField.class);
+			String target = tf.target();
+			
+			selectSQL = selectSQL + target + " ,";
+			
+		}
+		
+		selectSQL = selectSQL.substring(0,selectSQL.length()-1);	
+		
+		String result = selectSQL = selectSQL + " from " + tableName;
+		
+		return result;
+	}
+	
 
 
 
-	public Map<Class<?>, String> getClassMap() {
+	public Map<Class<?>, Field[]> getClassMap() {
 		return classMap;
 	}
 	
